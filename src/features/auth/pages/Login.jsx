@@ -37,7 +37,7 @@ const Login = () => {
             className="gradient-btn box-content p-3 rounded-4xl mb-2"
           />
           <CardTitle className="text-2xl gradient-text font-bold mb-2">
-            AI Trip Planner
+            Journey Craft 
           </CardTitle>
           <CardDescription className="mb-3">
             Plan your perfect trip with AI

@@ -62,7 +62,7 @@ export default function AppLayout() {
             <Planner className="gradient-btn box-content p-2 rounded-2xl" />
             <div className="max-[920px]:">
               <h4 className="text-lg font-medium gradient-text">
-                AI Trip Planner
+                Journey Craft 
               </h4>
               <p className="text-xs font-medium">Smart Travel Planning</p>
             </div>
