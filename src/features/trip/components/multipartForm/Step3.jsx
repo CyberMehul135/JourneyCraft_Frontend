@@ -19,6 +19,12 @@ import { toast as toasty } from "sonner";
 import { useState } from "react";
 import { SelectDemo } from "@/components/common/SelectDemo";
 import { ErrorToast } from "../ErrorToast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 export default function Step3({ nextStep, prevStep }) {
   const dispatch = useDispatch();
@@ -48,16 +54,11 @@ export default function Step3({ nextStep, prevStep }) {
     onError: (error) => {
       // serErr(error);
       console.dir(error);
-      toast.error(
-        <ErrorToast
-          message={error?.response?.data?.message}
-        />,
-        {
-          className: "!bg-card !text-xs !border",
-          position: "top-right",
-          autoClose: 10000,
-        },
-      );
+      toast.error(<ErrorToast message={error?.response?.data?.message} />, {
+        className: "!bg-card !text-xs !border",
+        position: "top-right",
+        autoClose: 10000,
+      });
     },
   });
 
@@ -85,18 +86,34 @@ export default function Step3({ nextStep, prevStep }) {
           className={`gradient-btn box-content p-5 rounded-full overflow-visible mb-3 mx-auto ${getTravelPlanMutation.isPending ? "animate-spin animation-duration-[3s]" : ""}`}
         />
         <h2 className="text-xl font-semibold text-foreground text-center mb-5">
-          Ready to Create Your Perfect Itinery?
+          Ready to Create Your Perfect Itinerary?
         </h2>
         <p className="max-w-[600px] mx-auto text-center text-sm text-muted-foreground font-medium mb-8 max-sm:hidden">
-          Our Ai will analyze your preferences and create a personalized itinery
-          with activities, restaurants and accomodation tailored just for you.
+          Our Ai will analyze your preferences and create a personalized
+          itinerary with activities, restaurants and accomodation tailored just
+          for you.
         </p>
 
         <div className="flex justify-between max-w-[400px] mx-auto mb-7">
-          <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground">
-            <MapPinned color="#2D5FE0" strokeWidth={2} absoluteStrokeWidth />{" "}
-            {formData?.destination}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground">
+                  <MapPinned
+                    color="#2D5FE0"
+                    strokeWidth={2}
+                    absoluteStrokeWidth
+                  />{" "}
+                  <span className="truncate max-w-[120px] max-sm:max-w-[100px] text-center">
+                    {formData?.destination}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{formData?.destination}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground">
             <CalendarDays color="#2D5FE0" strokeWidth={2} absoluteStrokeWidth />
             {calculateDays(formData?.startDate, formData?.endDate)} days

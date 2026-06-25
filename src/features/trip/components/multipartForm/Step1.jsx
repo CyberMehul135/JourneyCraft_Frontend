@@ -1,17 +1,20 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { ArrowLeft, MapPinned, MoveLeft, MoveRight } from "lucide-react";
+import { MoveLeft, MoveRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
 import { updateFields } from "@/features/trip/tripSlice";
 import { useRef, useState } from "react";
+import { getDestinationSuggestions } from "@/services/geoapify.service";
 
 export default function Step1({ nextStep }) {
   const dispatch = useDispatch();
   const trip = useSelector((state) => state.trip.formData);
 
+  const [suggestions, setSuggestions] = useState([]);
   const [errors, setErrors] = useState({});
+  const debounceRef = useRef(null);
   const refs = {
     destination: useRef(null),
     travellers: useRef(null),
@@ -20,14 +23,81 @@ export default function Step1({ nextStep }) {
     budget: useRef(null),
   };
 
+  const getSuggestions = async (value) => {
+    if (value.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    try {
+      const data = await getDestinationSuggestions(value);
+      setSuggestions(data);
+    } catch (error) {
+      console.error(error);
+      setSuggestions([]);
+    }
+  };
+
+  const handleDestinationChange = (e) => {
+    const value = e.target.value;
+
+    // setSelectedPlace(null);
+
+    dispatch(
+      updateFields({
+        field: "destination",
+        value,
+      }),
+    );
+
+    dispatch(
+      updateFields({
+        field: "destinationPlaceId",
+        value: "",
+      }),
+    );
+
+    // Clear previous timer
+    clearTimeout(debounceRef.current);
+
+    // New timer
+    debounceRef.current = setTimeout(() => {
+      getSuggestions(value);
+    }, 500);
+
+    setErrors((prev) => ({
+      ...prev,
+      destination: false,
+    }));
+  };
+
   const handleNext = () => {
     const newErrors = {};
 
-    if (!trip.destination) newErrors.destination = true;
-    if (!trip.travellers) newErrors.travellers = true;
+    if (!trip.destination) {
+      newErrors.destination = "Destination is required";
+    } else if (!trip.destinationPlaceId) {
+      newErrors.destination = "Please select a destination from suggestions";
+    }
+    if (!trip.travellers) {
+      newErrors.travellers = "Travellers is required";
+    } else if (Number(trip.travellers) < 1) {
+      newErrors.travellers = "Minimum 1 traveller required";
+    }
     if (!trip.startDate) newErrors.startDate = true;
-    if (!trip.endDate) newErrors.endDate = true;
-    if (!trip.budget) newErrors.budget = true;
+    if (!trip.endDate) {
+      newErrors.endDate = "End date is required";
+    } else if (
+      trip.startDate &&
+      new Date(trip.endDate) < new Date(trip.startDate)
+    ) {
+      newErrors.endDate = "End date must be after start date";
+    }
+    if (!trip.budget) {
+      newErrors.budget = "Budget is required";
+    } else if (Number(trip.budget) < 1) {
+      newErrors.budget = "Please put correct amount";
+    }
 
     setErrors(newErrors);
 
@@ -51,6 +121,15 @@ export default function Step1({ nextStep }) {
   };
 
   const handleInputOnChange = (e) => {
+    const { id, value } = e.target;
+
+    if (id === "travellers" && Number(value) < 0) {
+      return;
+    }
+    if (id === "budget" && Number(value) < 0) {
+      return;
+    }
+
     dispatch(updateFields({ field: e.target.id, value: e.target.value }));
     setErrors((prev) => ({
       ...prev,
@@ -62,7 +141,7 @@ export default function Step1({ nextStep }) {
     <div className="max-w-[800px] md:shadow-sm mx-auto bg-card/40 max-md:bg-transparent max-md:border-none max-md:px-1 p-10 max-md:py-5 border rounded-xl">
       {/* Fields */}
       <div className="max-w-[800px] grid grid-cols-2 max-md:grid-cols-1 gap-x-5 gap-y-5 mb-8">
-        <Field className="gap-0">
+        <Field className="gap-0 relative">
           <FieldLabel
             htmlFor="destination"
             className="mb-2 text-lg font-semibold"
@@ -78,11 +157,40 @@ export default function Step1({ nextStep }) {
               errors.destination && "border-red-500",
             )}
             value={trip.destination}
-            onChange={handleInputOnChange}
+            onChange={handleDestinationChange}
           />
+          {suggestions.length > 0 && (
+            <div className="absolute top-20 z-20 mt-2 border rounded-md bg-background">
+              {suggestions.map((place) => (
+                <div
+                  key={place.properties.place_id}
+                  className="p-3 cursor-pointer hover:bg-muted"
+                  onClick={() => {
+                    dispatch(
+                      updateFields({
+                        field: "destination",
+                        value: place.properties.formatted,
+                      }),
+                    );
+
+                    dispatch(
+                      updateFields({
+                        field: "destinationPlaceId",
+                        value: place.properties.place_id,
+                      }),
+                    );
+
+                    setSuggestions([]);
+                  }}
+                >
+                  {place.properties.formatted}
+                </div>
+              ))}
+            </div>
+          )}
           {errors.destination && (
             <p className="text-xs text-red-500 mt-1.5 ml-1">
-              Destination is required
+              {errors.destination}
             </p>
           )}
         </Field>
@@ -94,19 +202,26 @@ export default function Step1({ nextStep }) {
             Number of travellers
           </FieldLabel>
           <Input
+            type="number"
+            min="1"
             placeholder="2"
             id="travellers"
             ref={refs.travellers}
             className={cn(
-              "p-6 placeholder:text-gray-400 dark:placeholder:text-gray-500",
+              "p-6 placeholder:text-gray-400 dark:placeholder:text-gray-500 scheme-light dark:scheme-dark",
               errors.travellers && "border-red-500 focus-visible:ring-red-500",
             )}
             value={trip.travellers}
             onChange={handleInputOnChange}
+            onKeyDown={(e) => {
+              if (["e", "E", "+", "-", "."].includes(e.key)) {
+                e.preventDefault();
+              }
+            }}
           />
           {errors.travellers && (
             <p className="text-xs text-red-500 mt-1.5 ml-1">
-              Travellers is required
+              {errors.travellers}
             </p>
           )}
         </Field>
@@ -120,6 +235,7 @@ export default function Step1({ nextStep }) {
           <Input
             type="date"
             placeholder="2"
+            max={trip.endDate}
             id="startDate"
             ref={refs.startDate}
             className={`p-6 placeholder:text-gray-400 dark:placeholder:text-white scheme-light dark:scheme-dark ${errors.startDate && "border-red-500"}`}
@@ -128,7 +244,7 @@ export default function Step1({ nextStep }) {
           />
           {errors.startDate && (
             <p className="text-xs text-red-500 mt-1.5 ml-1">
-              Start-Date is required
+              Start date is required
             </p>
           )}
         </Field>
@@ -139,6 +255,7 @@ export default function Step1({ nextStep }) {
           <Input
             type="date"
             placeholder="2"
+            min={trip.startDate}
             id="endDate"
             ref={refs.endDate}
             className={cn(
@@ -149,9 +266,7 @@ export default function Step1({ nextStep }) {
             onChange={handleInputOnChange}
           />
           {errors.endDate && (
-            <p className="text-xs text-red-500 mt-1.5 ml-1">
-              End-Date is required
-            </p>
+            <p className="text-xs text-red-500 mt-1.5 ml-1">{errors.endDate}</p>
           )}
         </Field>
         <Field className="md:col-span-2 gap-0">
@@ -160,6 +275,7 @@ export default function Step1({ nextStep }) {
           </FieldLabel>
           <Input
             type="number"
+            min="1"
             placeholder="₹70,000"
             id="budget"
             ref={refs.budget}
@@ -169,11 +285,14 @@ export default function Step1({ nextStep }) {
             )}
             value={trip.budget}
             onChange={handleInputOnChange}
+            onKeyDown={(e) => {
+              if (["e", "E", "+", "-", "."].includes(e.key)) {
+                e.preventDefault();
+              }
+            }}
           />
           {errors.budget && (
-            <p className="text-xs text-red-500 mt-1.5 ml-1">
-              Budget is required
-            </p>
+            <p className="text-xs text-red-500 mt-1.5 ml-1">{errors.budget}</p>
           )}
         </Field>
       </div>

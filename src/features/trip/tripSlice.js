@@ -3,6 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const initialState = {
   formData: {
     destination: "",
+    destinationPlaceId: "",
     travellers: "",
     startDate: "",
     endDate: "",
