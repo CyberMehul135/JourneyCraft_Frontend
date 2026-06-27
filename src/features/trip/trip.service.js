@@ -39,3 +39,8 @@ export const getAiModels = async () => {
   const res = await authAxios.get(`/api/v1/ai/models`);
   return res.data;
 };
+
+export const toggleFavouriteTrip = async (id) => {
+  const res = await authAxios.patch(`/api/v1/itinery/${id}/favourite`);
+  return res.data;
+};

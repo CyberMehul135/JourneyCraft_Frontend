@@ -12,7 +12,7 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { generateAiTrip, getAiModels } from "../../trip.service";
+import { createTrip, generateAiTrip, getAiModels } from "../../trip.service";
 import { resetFields, updateTripData } from "../../tripSlice";
 import { toast } from "react-toastify";
 import { toast as toasty } from "sonner";
@@ -50,6 +50,10 @@ export default function Step3({ nextStep, prevStep }) {
       nextStep();
       dispatch(resetFields());
       toasty.success("Trip generated");
+      createTripMutation.mutate({
+        quickSummary: data?.data?.data?.quickSummary,
+        itinerary: data?.data?.data?.itinerary,
+      });
     },
     onError: (error) => {
       // serErr(error);
@@ -59,6 +63,13 @@ export default function Step3({ nextStep, prevStep }) {
         position: "top-right",
         autoClose: 10000,
       });
+    },
+  });
+
+  const createTripMutation = useMutation({
+    mutationFn: (tripData) => createTrip(tripData),
+    onSuccess: () => {
+      console.log("Trip Saved");
     },
   });
 

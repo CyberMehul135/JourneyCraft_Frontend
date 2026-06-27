@@ -47,7 +47,7 @@ export const TripDetailsCard = ({
     },
   });
 
-  const handleAddTrip = () => {
+  const handleAddToFavourite = () => {
     createTripMutation.mutate({
       quickSummary: data?.quickSummary,
       itinerary: data?.itinerary,
@@ -421,11 +421,13 @@ export const TripDetailsCard = ({
             </Button>
             <Button
               className="w-[48%] py-5 bg-linear-to-r from-red-800 to-red-400 font-semibold cursor-pointer hover:scale-101 transition-all border-none"
-              onClick={handleAddTrip}
+              onClick={handleAddToFavourite}
             >
               {!createTripMutation.isPending && <Plus strokeWidth={3} />}
               {createTripMutation.isPending && <Spinner />}
-              {createTripMutation.isPending ? "Saving Trip..." : "Add Trip"}
+              {createTripMutation.isPending
+                ? "Adding to MyTrips..."
+                : "Add to MyTrips"}
             </Button>
           </div>
         )}

@@ -34,7 +34,7 @@ export const TripPlanner = () => {
           destinationImg={true}
           activityImg={false}
           tripSummary={true}
-          buttons={true}
+          buttons={false}
           data={tripData?.data?.data}
           onClickDownloadAsPDF={downloadPDF}
         />
